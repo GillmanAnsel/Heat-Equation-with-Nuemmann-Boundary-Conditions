@@ -22,16 +22,21 @@ for t = 1:steps
         u_new(i) = u(i) + alpha * dt/dx^2 * (u(i+1) - 2*u(i) + u(i-1));
     end
     u = u_new;
-    
-    % Optional: Plot every 100 steps to see movement
-    if mod(t, 100) == 0
-        plot(x, u, 'g');
-        title(['Heat Diffusion at step ', num2str(t)]);
-        xlabel('Position (x)');
-        ylabel('Temperature (u)');
-        grid on;
-        pause(0.05);
-    end
 end
+
+% Plot final result
+figure;
+set(gcf, 'Position', [100, 100, 800, 600]);
+plot(x, u, 'r');
+title(['Heat Diffusion at step ', num2str(steps)]);
+xlabel('Position (x)');
+ylabel('Temperature (u)');
+grid on;
+drawnow;
+
+% Save single output graph
+frame = getframe(gcf);
+im = frame2im(frame);
+[imind, cm] = rgb2ind(im, 256);
 saveas(gcf, 'Test\test_graph.png');
 disp('Test complete!!!!!');
