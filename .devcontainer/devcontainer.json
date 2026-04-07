@@ -1,0 +1,15 @@
+{
+    "name": "MATLAB",
+    "image": "mathworks/matlab:latest",
+    "features": {
+        "ghcr.io/devcontainers/features/git:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "MathWorks.language-matlab"
+            ]
+        }
+    },
+    "remoteUser": "matlab"
+}
