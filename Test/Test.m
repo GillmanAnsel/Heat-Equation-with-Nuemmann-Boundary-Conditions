@@ -27,7 +27,7 @@ end
 % Plot final result
 figure;
 set(gcf, 'Position', [100, 100, 800, 600]);
-plot(x, u, 'r');
+plot(x, u, 'b');
 title(['Heat Diffusion at step ', num2str(steps)]);
 xlabel('Position (x)');
 ylabel('Temperature (u)');
