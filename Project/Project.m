@@ -63,6 +63,9 @@ for k = [1, 25, 50, 75, 100]
     phi_k = hat_function(X_grid, X_grid, k);
     plot(X_grid, phi_k, 'b');
 end
+xlabel('x');
+ylabel('\phi_k(x)');
+title('Piecewise Linear Hat Functions(K=1, 25, 50, 75, 100)');
 saveas(gcf, 'Project\hat_functions.png');
 
 % Step 4- formulate the fully discrete scheme and the system of equations
