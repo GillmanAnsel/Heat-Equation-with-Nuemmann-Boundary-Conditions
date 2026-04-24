@@ -1,198 +1,191 @@
+% filepath: /workspaces/Heat-Equation-with-Nuemmann-Boundary-Conditions/Project/Project_Copy.m
 %% ----------APDE Project----------
 %%-----Task 1-----
 
-%% STEP 1: Time Discretization using Implicit Euler Method
-% =========================================================
-% Set up uniform time partition: t_n = n*tau, where tau = Tf/N
-Tf = 1; % final time
-nt = 20; % number of time steps
-T = linspace(0, Tf, nt); % time vector
-dt = T(2) - T(1); % time step size
+%% STEP 1: Main FEM Solver Function (Heat Equation with Neumann BCs)
+function [X_grid, T, U_final, U_history] = FiniteElementMethod(varargin)
+    % --- Parse input parameters ---
+    p = inputParser;
+    addParameter(p, 'L', 1);           % Domain length
+    addParameter(p, 'Nx', 20);         % Number of spatial nodes
+    addParameter(p, 'Tf', 1);          % Final time
+    addParameter(p, 'Nt', 20);         % Number of time steps
+    addParameter(p, 'a_func', @(x) 1); % Diffusion coefficient
+    addParameter(p, 'f_func', @(x,t) 0); % Source term
+    addParameter(p, 'g_left', @(t) 0);   % Left Neumann BC
+    addParameter(p, 'g_right', @(t) 0);  % Right Neumann BC
+    addParameter(p, 'u0', @(x) 0);       % Initial condition
+    addParameter(p, 'save_plots', false);% Save plots flag
+    parse(p, varargin{:});
+    params = p.Results;
 
-%% STEP 2: Weak Formulation
-% =========================================================
-% Starting from the heat equation:
-%   du/dt - d/dx(a(x) du/dx) = f(x,t)    in (0,L)
-%   du/dx(0,t) = a,  du/dx(L,t) = b      Neumann BCs
-%   u(x,0) = u0(x)                       Initial condition
-%
-% Multiply by test function v, integrate by parts to get weak form:
-%   (1/dt)(u^n, v) + (a du^n/dx, dv/dx) = (1/dt)(u^{n-1}, v) + (f^n, v) + boundary_terms
-%
-% This leads to the system:  [(1/dt)M + K] U^n = (1/dt)M U^{n-1} + F^n + B^n
+    % --- Extract parameters for use ---
+    L = params.L;
+    Nx = params.Nx;
+    Tf = params.Tf;
+    Nt = params.Nt;
+    a_func = params.a_func;
+    f_func = params.f_func;
+    g_left = params.g_left;
+    g_right = params.g_right;
+    u0 = params.u0;
+    save_plots = params.save_plots;
 
-%% STEP 3: Finite Element Method with Piecewise Linear Basis Functions
-% =========================================================
-% Set up spatial domain
-L = 1; % domain length
-Nx = 20; % number of spatial nodes
-X_grid = linspace(0, L, Nx); % uniform spatial mesh
-h = X_grid(2) - X_grid(1); % mesh spacing
+    % --- Set up spatial and temporal grids ---
+    X_grid = linspace(0, L, Nx);    % Spatial grid
+    T = linspace(0, Tf, Nt);        % Time grid
+    dt = T(2) - T(1);               % Time step size
 
-% Define problem parameters
-a_func = @(x) 1; % diffusion coefficient a(x)
-f_func = @(x,t) 0; % source term f(x,t)
-g_left = @(t) 0; % Neumann BC at x=0: du/dx(0,t) = a
-g_right = @(t) 0; % Neumann BC at x=L: du/dx(L,t) = b
-u0 = @(x) 0; % initial condition u(x,0) = u0(x)
+    % --- Assemble FEM matrices ---
+    K = StiffnessAssembler1D(X_grid, a_func, [0,0]); % Stiffness matrix
+    M = MassAssembler1D(X_grid);                     % Mass matrix
+    A_system = (1/dt)*M + K;                         % System matrix
 
-% plotting some hat functions
-figure;
-set(gcf, 'Position', [100, 100, 800, 600]);
-hold on;
-for k = 1:5:Nx
-    phi_k = hat_function(X_grid, k);
-    plot(X_grid, phi_k, 'b');
-end
-xlabel('x');
-ylabel('\phi_k(x)');
-title('Piecewise Linear Hat Functions (Basis Functions)');
-saveas(gcf, fullfile('Project', 'hat_functions.png'));
-close;
+    % --- Initial condition ---
+    U_prev = u0(X_grid)';            % Initial solution vector
+    U_history = zeros(Nx, Nt);       % Store solution at all time steps
+    U_history(:, 1) = U_prev;
 
-%% STEP 4: Fully Discrete Scheme and System of Linear Equations
-% =========================================================
-% Assemble matrices:
-%   K_ij = integral a(x)*phi_i'(x)*phi_j'(x) dx  (stiffness matrix)
-%   M_ij = integral phi_i(x)*phi_j(x) dx  (mass matrix)
-K = StiffnessAssembler1D(X_grid, a_func, [0,0]);
-M = MassAssembler1D(X_grid);
+    % --- Time-stepping loop (implicit Euler) ---
+    for n = 2:length(T)
+        t_n = T(n);
+        F = LoadAssembler1D(X_grid, f_func, t_n);    % Load vector
 
-% System matrix: A = (1/dt)*M + K
-A_system = (1/dt)*M + K;
+        % --- Neumann BCs: add boundary fluxes to RHS ---
+        B = zeros(Nx, 1);
+        h = X_grid(2) - X_grid(1);
+        B(1) = -a_func(0) * g_left(t_n);     % Left boundary
+        B(Nx) = a_func(L) * g_right(t_n);    % Right boundary
 
-% Initial condition (expand in basis functions)
-U_prev = u0(X_grid)';
-U_current = U_prev;
+        % --- Solve linear system for new time step ---
+        b = (1/dt)*M*U_prev + F + B;
+        U_current = A_system \ b;
+        U_history(:, n) = U_current;
+        U_prev = U_current;
+    end
 
-% Solving the System [(1/dt)M + K] U^n = (1/dt)M U^{n-1} + F^n + B^n
-for n = 2:length(T)
-    t_n = T(n);
-    
-    % Assemble load vector: F_i = integral f(x,t_n)*phi_i(x) dx
-    F = LoadAssembler1D(X_grid, f_func, t_n);
-    
-    % Boundary contributions (Neumann conditions on RHS)
-    B = zeros(Nx, 1);
-    B(1) = g_left(t_n);
-    B(Nx) = g_right(t_n);
-    
-    % Right-hand side: b = (1/dt)*M*U^{n-1} + F + B
-    b = (1/dt)*M*U_prev + F + B;
-    
-    % Solve the linear system
-    U_current = A_system \ b;
-    
-    % Update for next time step
-    U_prev = U_current;
+    % --- Output final solution and optionally plot ---
+    U_final = U_history(:, end);
+    if save_plots
+        plot_fem_results(X_grid, T, U_history, U_final);
+    end
 end
 
-% Visualize final solution
-figure;
-plot(X_grid, U_current, 'b-', 'LineWidth', 2);
-xlabel('x');
-ylabel('u(x, T)');
-title(sprintf('FEM Solution of Heat Equation at t = %.2f', T(end)));
-grid on;
-saveas(gcf, fullfile('Project', 'solution.png'));
-close;
+%% STEP 2: Plotting Functions
+function plot_fem_results(X_grid, T, U_history, U_final)
+    % Create output directory if needed
+    if ~exist('Project', 'dir')
+        mkdir('Project');
+    end
+    % Plot final solution at last time
+    figure;
+    plot(X_grid, U_final, 'b-', 'LineWidth', 2);
+    xlabel('x');
+    ylabel('u(x, T)');
+    title(sprintf('FEM Solution of Heat Equation at t = %.2f', T(end)));
+    grid on;
+    saveas(gcf, fullfile('Project', 'solution.png'));
+    close;
 
-disp('Task 1 complete!!!!!');
+    % Plot solution evolution as a heatmap
+    figure;
+    imagesc(T, X_grid, U_history);
+    colorbar;
+    xlabel('Time t');
+    ylabel('Position x');
+    title('Heat Equation Solution Over Time');
+    saveas(gcf, fullfile('Project', 'solution_heatmap.png'));
+    close;
+end
 
-%% ========== FUNCTIONS ==========
-
+%% STEP 3: Basis Function (Hat/Tent Function)
 function phi = hat_function(X_grid, k)
-    % Piecewise linear hat (tent) basis function
-    % phi_k is 1 at node k, 0 elsewhere, linear between nodes
+    % Returns the k-th hat function evaluated on X_grid
     h = X_grid(2) - X_grid(1);
     phi = zeros(size(X_grid));
-    
     if k == 1
-        % Left boundary: linear from 1 at x_1 to 0 at x_2
         xk = X_grid(k);
         xk_next = X_grid(k+1);
         idx1 = (X_grid >= xk & X_grid <= xk_next);
         phi(idx1) = (xk_next - X_grid(idx1)) / h;
     elseif k == length(X_grid)
-        % Right boundary: linear from 0 at x_{n-1} to 1 at x_n
         xk = X_grid(k);
         xk_prev = X_grid(k-1);
         idx2 = (X_grid >= xk_prev & X_grid <= xk);
         phi(idx2) = (X_grid(idx2) - xk_prev) / h;
     else
-        % Interior: tent with peak at x_k
         xk_prev = X_grid(k-1);
         xk = X_grid(k);
         xk_next = X_grid(k+1);
-        
-        % Left slope
         idx1 = (X_grid >= xk_prev & X_grid < xk);
         phi(idx1) = (X_grid(idx1) - xk_prev) / h;
-        
-        % Right slope
         idx2 = (X_grid >= xk & X_grid <= xk_next);
         phi(idx2) = (xk_next - X_grid(idx2)) / h;
     end
 end
 
+%% STEP 4: Stiffness Matrix Assembly
 function A = StiffnessAssembler1D(x, a, kappa)
-    % Assemble 1D stiffness matrix K_ij = integral a(x)*phi_i'(x)*phi_j'(x) dx
-    % using piecewise linear hat functions on uniform mesh
+    % Assemble stiffness matrix for 1D FEM
     n = length(x)-1;
     A = zeros(n+1, n+1);
     for i = 1:n
         h = x(i+1) - x(i);
-        xmid = (x(i+1) + x(i))/2; % interval mid-point
-        amid = a(xmid); % value of a(x) at mid-point
+        xmid = (x(i+1) + x(i))/2;
+        amid = a(xmid);
         A(i,i) = A(i,i) + amid/h;
         A(i,i+1) = A(i,i+1) - amid/h;
         A(i+1,i) = A(i+1,i) - amid/h;
         A(i+1,i+1) = A(i+1,i+1) + amid/h;
     end
-    % Add boundary terms (Robin/Dirichlet penalties if kappa > 0)
     A(1,1) = A(1,1) + kappa(1);
     A(n+1,n+1) = A(n+1,n+1) + kappa(2);
 end
 
+%% STEP 5: Mass Matrix Assembly
 function M = MassAssembler1D(x)
-    % Assemble 1D mass matrix M_ij = integral phi_i(x)*phi_j(x) dx
-    % For uniform mesh with piecewise linear hat functions:
-    % M_ii = 2*h/3 (diagonal), except endpoints M_00 = M_NN = h/3
-    % M_{i,i+1} = M_{i+1,i} = h/6 (off-diagonal)
+    % Assemble mass matrix for 1D FEM
     n = length(x)-1;
     M = zeros(n+1, n+1);
-    h = x(2) - x(1); % uniform mesh spacing
-    
-    % Diagonal entries
+    h = x(2) - x(1);
     M(1,1) = h/3;
     for i = 2:n
         M(i,i) = 2*h/3;
     end
     M(n+1,n+1) = h/3;
-    
-    % Off-diagonal entries (neighbors)
     for i = 1:n
         M(i,i+1) = h/6;
         M(i+1,i) = h/6;
     end
 end
 
+%% STEP 6: Load Vector Assembly
 function F = LoadAssembler1D(x, f_func, t)
-    % Assemble 1D load vector F_i = integral f(x,t)*phi_i(x) dx
-    % Using midpoint quadrature on each element
+    % Assemble load vector for 1D FEM
     n = length(x)-1;
     F = zeros(n+1, 1);
-    h = x(2) - x(1); % uniform mesh spacing
-    
-    % Contribution from each interval [x_i, x_{i+1}]
+    h = x(2) - x(1);
     for i = 1:n
-        xmid = (x(i) + x(i+1)) / 2; % midpoint of interval
-        f_mid = f_func(xmid, t); % evaluate f at midpoint
-        
-        % Each node receives h/2 of the contribution per adjacent interval
+        xmid = (x(i) + x(i+1)) / 2;
+        f_mid = f_func(xmid, t);
         F(i) = F(i) + f_mid * h / 2;
         F(i+1) = F(i+1) + f_mid * h / 2;
     end
 end
 
+%% STEP 7: Example Run (Test the solver)
 
+
+X_grid = linspace(0, 1, 21);
+[X, T, U_final, U_hist] = FiniteElementMethod(...
+    'Nx', 50, ... % Number of spatial nodes
+    'Nt', 100, ... % Number of time steps
+    'Tf', 0.5, ... % Final time
+    'u0', @(x) zeros(size(x)), ... % Initial condition
+    'a_func', @(x) 1, ... % Diffusion coefficient
+    'f_func', @(x,t) 10 * sin(pi*x), ... % f(x,t)
+    'g_left', @(t) 0, ... % Left Neumann BC
+    'g_right', @(t) 0, ...  % Right Neumann BC
+    'save_plots', true);
+
+disp('Task 1 complete!!!!!!');
