@@ -55,8 +55,8 @@ function [X_grid, T, U_final, U_history] = FiniteElementMethod(varargin)
         % --- Neumann BCs: add boundary fluxes to RHS ---
         B = zeros(Nx, 1);
         h = X_grid(2) - X_grid(1);
-        B(1) = -a_func(0) * g_left(t_n);     % Left boundary
-        B(Nx) = a_func(L) * g_right(t_n);    % Right boundary
+        B(1) = -a_func(0) * g_left(t_n);      % Left boundary (outward normal is -x)
+        B(Nx) = a_func(L)  * g_right(t_n);   % Right boundary (outward normal is +x)
         % BC Interpretation:
         % g_left:  Heat flux at x=0. Positive value means heat leaves domain at left.
         % g_right: Heat flux at x=L. Positive value means heat leaves domain at right.
@@ -127,19 +127,24 @@ function phi = hat_function(X_grid, k)
         phi(idx2) = (xk_next - X_grid(idx2)) / h;
     end
 end
-% Plotting some hat functions for visualization
-figure;
-hold on;
-for k = 1:length(X_grid)
-    phi_k = hat_function(X_grid, k);
-    plot(X_grid, phi_k + (k-1)*0.5, 'LineWidth', 1.5); % Shift up for visibility
+
+%% Plot Hat Functions
+function plot_hat_functions(X_grid)
+    % Plotting some hat functions for visualization
+    figure;
+    hold on;
+    for k = 1:10:length(X_grid)
+        phi_k = hat_function(X_grid, k);
+        plot(X_grid, phi_k, 'LineWidth', 1.5);
+    end
+    xlabel('x');
+    ylabel('Hat Functions');
+    title('Plotting (Some) Hat Functions');
+    grid on;
+    saveas(gcf, fullfile('Project', 'hat_functions.png'));
+    close;
 end
-xlabel('x');
-ylabel('Hat Functions');
-title('Hat (Tent) Functions for 1D FEM');
-grid on;
-saveas(gcf, fullfile('Project', 'hat_functions.png'));
-close;  
+
 %% STEP 4: Stiffness Matrix Assembly
 function A = StiffnessAssembler1D(x, a, kappa)
     % Assemble stiffness matrix for 1D FEM
@@ -191,17 +196,31 @@ end
 
 %% STEP 7: Example Run (Test the solver)
 
-u_exact = @(x,t) x + t;
-f_func = @(x,t) 1; 
-g_left_func = @(t) 1;  
-g_right_func = @(t) 1; 
+
+% --- Manufactured Solution: u(x,t) = x^2 + t ---
+
+% Exact solution:
+u_exact = @(x,t) exp(-t) .* sin(pi * x);
+% Initial condition (t = 0)
+u0  = @(x) sin(pi * x); 
+% Source term f(x,t) derived from u_t - u_xx
+% u_t  = -exp(-t)*sin(pi*x)
+% u_xx = -pi^2 * exp(-t)*sin(pi*x)
+f_func       = @(x,t) (pi^2 - 1) * exp(-t) .* sin(pi * x);
+% Neumann Boundary Conditions (du/dx)
+% du/dx = pi * exp(-t) * cos(pi * x)
+g_left_func  = @(t) pi * exp(-t);  % at x=0, cos(0) = 1
+g_right_func = @(t) -pi * exp(-t); % at x=1, cos(pi) = -1
+
 
 X_grid = linspace(0, 1, 21);
+plot_hat_functions(X_grid);  % Plot hat functions for visualization
+
 [X, T, U_final, U_hist] = FiniteElementMethod(...
     'Nx', 50, ... % Number of spatial nodes
     'Nt', 100, ... % Number of time steps
     'Tf', 1, ... % Final time
-    'u0', @(x) u_exact(x, 0), ... % Initial condition
+    'u0', @(x) u0(x), ... % Initial condition
     'a_func', @(x) 1, ... % Diffusion coefficient
     'f_func', f_func, ... % f(x,t)
     'g_left', g_left_func, ... % Left Neumann BC
@@ -224,7 +243,7 @@ disp('Task 2 complete!!!!!!');
 
 
 % Fixed parameters
-tau = 5e-3;  % Fixed time step
+tau = 5e-5;  % Fixed time step(changed from 5e-3to 5e-5 for better accuracy)
 Tf = 1;    % Final time
 Nt = ceil(Tf / tau) + 1;  % Number of time steps
 
