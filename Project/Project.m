@@ -209,12 +209,6 @@ disp('Task 2 complete!!!!!!');
 %%-----Task 3-----
 %% Spatial Convergence Study using Method of Manufactured Solutions
 
-% Define manufactured solution and its derivatives
-% For u(x,t) = x: du/dx = 1, d²u/dx² = 0, ∂u/∂t = 0
-% This is an EXACT solution to the homogeneous heat equation
-
-
-
 
 
 % Fixed parameters
