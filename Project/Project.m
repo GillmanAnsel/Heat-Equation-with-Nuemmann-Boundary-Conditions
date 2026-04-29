@@ -197,7 +197,7 @@ end
 %% STEP 7: Example Run (Test the solver)
 
 
-% --- Manufactured Solution: u(x,t) = x^2 + t ---
+% --- Manufactured Solution: 
 
 % Exact solution:
 u_exact = @(x,t) exp(-t) .* sin(pi * x);
