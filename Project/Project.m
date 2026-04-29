@@ -4,6 +4,7 @@
 
 %% STEP 1: Main FEM Solver Function (Heat Equation with Neumann BCs)
 function [X_grid, T, U_final, U_history] = FiniteElementMethod(varargin)
+ 
     % --- Parse input parameters ---
     p = inputParser;
     addParameter(p, 'L', 1);           % Domain length
@@ -56,6 +57,9 @@ function [X_grid, T, U_final, U_history] = FiniteElementMethod(varargin)
         h = X_grid(2) - X_grid(1);
         B(1) = -a_func(0) * g_left(t_n);     % Left boundary
         B(Nx) = a_func(L) * g_right(t_n);    % Right boundary
+        % BC Interpretation:
+        % g_left:  Heat flux at x=0. Positive value means heat leaves domain at left.
+        % g_right: Heat flux at x=L. Positive value means heat leaves domain at right.
 
         % --- Solve linear system for new time step ---
         b = (1/dt)*M*U_prev + F + B;
@@ -175,17 +179,140 @@ end
 
 %% STEP 7: Example Run (Test the solver)
 
+u_exact = @(x,t) x + t;
+f_func = @(x,t) 1; 
+g_left_func = @(t) 1;  
+g_right_func = @(t) 1; 
 
 X_grid = linspace(0, 1, 21);
 [X, T, U_final, U_hist] = FiniteElementMethod(...
     'Nx', 50, ... % Number of spatial nodes
     'Nt', 100, ... % Number of time steps
-    'Tf', 0.5, ... % Final time
-    'u0', @(x) zeros(size(x)), ... % Initial condition
+    'Tf', 1, ... % Final time
+    'u0', @(x) u_exact(x, 0), ... % Initial condition
     'a_func', @(x) 1, ... % Diffusion coefficient
-    'f_func', @(x,t) 10 * sin(pi*x), ... % f(x,t)
-    'g_left', @(t) 0, ... % Left Neumann BC
-    'g_right', @(t) 0, ...  % Right Neumann BC
+    'f_func', f_func, ... % f(x,t)
+    'g_left', g_left_func, ... % Left Neumann BC
+    'g_right', g_right_func, ...  % Right Neumann BC
     'save_plots', true);
 
+
 disp('Task 1 complete!!!!!!');
+
+
+
+%%-----Task 2-----
+%% Method of Manufactured Solutions
+
+disp('Task 2 complete!!!!!!');
+
+%%-----Task 3-----
+%% Spatial Convergence Study using Method of Manufactured Solutions
+
+% Define manufactured solution and its derivatives
+% For u(x,t) = x: du/dx = 1, d²u/dx² = 0, ∂u/∂t = 0
+% This is an EXACT solution to the homogeneous heat equation
+
+
+
+
+
+% Fixed parameters
+tau = 5e-3;  % Fixed time step
+Tf = 1;    % Final time
+Nt = ceil(Tf / tau) + 1;  % Number of time steps
+
+% Mesh sizes (h values)
+h_values = [1/2, 1/4, 1/8, 1/16, 1/32, 1/64];
+Nx_values = 1 ./ h_values + 1;  % Number of nodes corresponding to each h
+
+% Storage for errors and convergence rates
+E_h = zeros(size(h_values));
+convergence_rates = zeros(size(h_values));
+
+% Convergence study loop
+fprintf('\n========== TASK 3: Spatial Convergence Study ==========\n');
+fprintf('Fixed time step: tau = %.2e\n', tau);
+fprintf('Final time: Tf = %.2f\n\n', Tf);
+
+for k = 1:length(h_values)
+    h = h_values(k);
+    Nx = Nx_values(k);
+    
+    fprintf('Computing solution for h = 1/%d (Nx = %d)...\n', round(1/h), Nx);
+    
+    % Run FEM solver
+    [X_grid, T, U_final, U_hist] = FiniteElementMethod(...
+        'L', 1, ...
+        'Nx', Nx, ...
+        'Tf', Tf, ...
+        'Nt', Nt, ...
+        'u0', @(x) u_exact(x, 0), ...
+        'a_func', @(x) 1, ...
+        'f_func', f_func, ...
+        'g_left', g_left_func, ...
+        'g_right', g_right_func, ...
+        'save_plots', false);
+    
+    % Compute L2 error at each time step
+    max_error = 0;
+    for n = 1:length(T)
+        U_exact_n = u_exact(X_grid, T(n))';
+        U_approx_n = U_hist(:, n);
+        
+        % Compute L2 norm of error
+        dx = X_grid(2) - X_grid(1);
+        error_n = sqrt(dx * sum((U_approx_n - U_exact_n).^2));
+        
+        % Track maximum error
+        max_error = max(max_error, error_n);
+    end
+    
+    E_h(k) = max_error;
+    fprintf('  E_h = %.6e\n', E_h(k));
+end
+
+% Compute convergence rates
+fprintf('\n========== Convergence Rates ==========\n');
+fprintf('h\t\tE_h\t\t\tln(E_2h/E_h)/ln(2)\n');
+fprintf('%.4f\t\t%.6e\tN/A\n', h_values(1), E_h(1));
+
+for k = 2:length(h_values)
+    convergence_rates(k) = log(E_h(k-1) / E_h(k)) / log(2);
+    fprintf('%.4f\t\t%.6e\t%.6f\n', h_values(k), E_h(k), convergence_rates(k));
+end
+
+% Create Table 1: Convergence Table
+fprintf('\n========== Table 1: h-rate Convergence Table ==========\n');
+fprintf('h\t\tE_h = max|u(t_n) - u_h^n|_L2\tln(E_2h/E_h)/ln(2)\n');
+fprintf('%-10s\t%-30s\t%-20s\n', '1/2', sprintf('%.6e', E_h(1)), 'N/A');
+for k = 2:length(h_values)
+    fprintf('%-10s\t%-30s\t%-20.6f\n', sprintf('1/%d', round(1/h_values(k))), sprintf('%.6e', E_h(k)), convergence_rates(k));
+end
+
+% Create log-log plot
+figure;
+log_h = -log(h_values);
+log_E = -log(E_h);
+
+plot(log_h, log_E, 'bo-', 'LineWidth', 2, 'MarkerSize', 8);
+xlabel('-log(h)', 'FontSize', 12);
+ylabel('-log(E_h)', 'FontSize', 12);
+title('Spatial Convergence: Log-Log Plot', 'FontSize', 14);
+grid on;
+hold on;
+
+% Fit a line to estimate convergence order
+p = polyfit(log_h, log_E, 1);
+log_h_fit = linspace(min(log_h), max(log_h), 100);
+log_E_fit = polyval(p, log_h_fit);
+plot(log_h_fit, log_E_fit, 'r--', 'LineWidth', 1.5, 'DisplayName', sprintf('Linear fit (slope=%.2f)', p(1)));
+legend('Numerical results', 'Linear fit', 'FontSize', 11);
+
+hold off;
+saveas(gcf, fullfile('Project', 'convergence_loglog_plot.png'));
+fprintf('\nLog-log plot saved to Project/convergence_loglog_plot.png\n');
+close;
+
+disp('Task 3 complete!!!!!!');
+disp(sprintf('Estimated convergence order: %.2f', p(1)));

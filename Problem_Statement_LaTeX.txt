@@ -1,0 +1,113 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\geometry{a4paper, margin=1in}
+
+\title{MAP 4341.01: Applied PDEs (Spring 2026) \\ \Large Final Project}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Reading Assignment}
+Read Sections 1.1 and 2.1--2.4 (you may skip subsection 2.1.6) from the following textbook:
+\begin{quote}
+    \textit{The Finite Element Method: Theory, Implementation, and Applications} by Bengzon and Larson.
+\end{quote}
+While reading, you may also skip any theorems.
+
+\section{Problem Statement}
+Consider the one-dimensional Heat equation:
+\begin{equation}
+    \frac{\partial u}{\partial t} = \frac{\partial^{2}u}{\partial x^{2}} + f(x,t), \quad x \in (0,L), \quad t \in (0, T_{F}]
+\end{equation}
+subject to Neumann boundary conditions:
+\begin{equation}
+    u_{x}(0,t) = a, \quad u_{x}(L,t) = b
+\end{equation}
+and an initial condition:
+\begin{equation}
+    u(x,0) = u_{0}(x)
+\end{equation}
+where $a, b \in \mathbb{R}$, $L > 0$, and $T_{F} > 0$.
+
+\section{Task 1}
+Approximate the solution to this initial boundary value problem by following these steps:
+\begin{enumerate}
+    \item Use the \textbf{implicit Euler method} for time discretization.
+    \item Derive the \textbf{weak formulation} by multiplying the equation by a test function $v(x)$ and integrating by parts.
+    \item Construct the \textbf{finite element approximation scheme} using piecewise linear basis functions for discretizing the spatial domain.
+    \item Formulate the \textbf{fully discrete scheme} and the resulting system of linear equations.
+\end{enumerate}
+
+\section{Task 2}
+Implement the numerical scheme from step 4 in Task 1 using a programming language of your choice (MATLAB is recommended).
+
+\section{Task 3}
+Using the method of manufactured solutions, perform a spatial convergence study by fixing $\tau = 5 \times 10^{-3}$. Tabulate your findings in a table (as shown in Table 1) and include it in the report. After tabulating, create a log-log plot where the $x$-axis represents $-\log h$ and the $y$-axis represents $-\log E_{h}$.
+
+\textit{Hint: Read about the method of manufactured solutions to know more.}
+
+\section{Notation}
+\begin{itemize}
+    \item For a fixed $N \in \mathbb{N}$, let $t_{n} = n\tau$ $(n=0,1,...,N)$ be a uniform partition of $[0, T_{F}]$ with $\tau = \frac{T_{F}}{N}$.
+    \item $u(t_{n})$ represents the exact solution of the PDE at the $n^{th}$ time step.
+    \item $u_{h}^{n}$ represents the finite element approximation of $u(t_{n})$.
+    \item $\|v\|_{L^{2}((0,1))}^{2} := \int_{0}^{1} |v|^{2} dx$.
+\end{itemize}
+
+\section{Numerical Results}
+$E_{2h}$ represents the error when using double the current mesh size $h$. For example, in the row corresponding to $h=1/4$, $E_{h}$ is the error for $h=1/4$ while $E_{2h}$ corresponds to the error for $h=1/2$.
+
+\begin{table}[h]
+\centering
+\caption{$h$ rate convergence table}
+\begin{tabular}{|c||c|c|}
+\hline
+$h$ & $E_{h} = \max_{1 \le n \le N} \|u(t_{n}) - u_{h}^{n}\|_{L^{2}((0,1))}$ & $\ln(E_{2h}/E_{h})/\ln 2$ \\ \hline
+$1/2$  & & N/A \\ \hline
+$1/4$  & &     \\ \hline
+$1/8$  & &     \\ \hline
+$1/16$ & &     \\ \hline
+$1/32$ & &     \\ \hline
+$1/64$ & &     \\ \hline
+\end{tabular}
+\end{table}
+
+\section{Preparing the Report}
+Your report should encompass the following sections:
+\begin{itemize}
+    \item \textbf{Abstract:} Provide a concise summary of the entire project objectives, methodology, results, and potential future directions.
+    \item \textbf{Introduction:} Clearly state the problem and provide necessary context.
+    \item \textbf{Weak Formulation and Fully Discrete Scheme:} Offer a comprehensive explanation of each step involved in the discretization process.
+    \item \textbf{Numerical Results:} Utilize your code to generate figures demonstrating the FEA approximation. Include Table 1 and the log-log plot.
+    \item \textbf{Concluding Remarks:} Summarize key findings and discuss possible improvements.
+\end{itemize}
+
+\subsection*{Analysis Questions}
+In the Numerical Results section, please address:
+\begin{itemize}
+    \item When $h$ is halved at each iteration, by approximately what factor does the error $E_{h}$ decrease? Does this depend on the PDE characteristics?
+    \item What conclusions can be drawn regarding the order of convergence from the last column of Table 1?
+    \item What key insights can be gained from the log-log plot?
+\end{itemize}
+
+\section{Suggested Timeline}
+\begin{itemize}[label=--]
+    \item \textbf{Reading Assignment:} 6 days
+    \item \textbf{Understanding the Problem Statement:} 1 day
+    \item \textbf{Task 1:} 6 days (Start the report template simultaneously)
+    \item \textbf{Task 2:} 7 days
+    \item \textbf{Task 3:} 3 days
+    \item \textbf{Review and Refinement of Report:} 4 days
+\end{itemize}
+
+\end{document}
