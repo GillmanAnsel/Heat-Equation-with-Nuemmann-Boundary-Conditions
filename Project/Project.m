@@ -127,7 +127,19 @@ function phi = hat_function(X_grid, k)
         phi(idx2) = (xk_next - X_grid(idx2)) / h;
     end
 end
-
+% Plotting some hat functions for visualization
+figure;
+hold on;
+for k = 1:length(X_grid)
+    phi_k = hat_function(X_grid, k);
+    plot(X_grid, phi_k + (k-1)*0.5, 'LineWidth', 1.5); % Shift up for visibility
+end
+xlabel('x');
+ylabel('Hat Functions');
+title('Hat (Tent) Functions for 1D FEM');
+grid on;
+saveas(gcf, fullfile('Project', 'hat_functions.png'));
+close;  
 %% STEP 4: Stiffness Matrix Assembly
 function A = StiffnessAssembler1D(x, a, kappa)
     % Assemble stiffness matrix for 1D FEM
