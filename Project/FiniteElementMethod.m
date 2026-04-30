@@ -1,7 +1,3 @@
-% filepath: /workspaces/Heat-Equation-with-Nuemmann-Boundary-Conditions/Project/Project_Copy.m
-%% ----------APDE Project----------
-%%-----Task 1-----
-
 %% STEP 1: Main FEM Solver Function (Heat Equation with Neumann BCs)
 function [X_grid, T, U_final, U_history] = FiniteElementMethod(varargin)
  
@@ -73,12 +69,12 @@ function [X_grid, T, U_final, U_history] = FiniteElementMethod(varargin)
     % --- Output final solution and optionally plot ---
     U_final = U_history(:, end);
     if save_plots
-        surface_plot(X_grid, T, U_history, U_final, plot_title);
+        plot_fem_results(X_grid, T, U_history, U_final, plot_title);
     end
 end
 
 %% STEP 2: Plotting Functions
-function surface_plot(X_grid, T, U_history, U_final, plot_title)
+function plot_fem_results(X_grid, T, U_history, U_final, plot_title)
     % Plot solution evolution as a 3D surface
     [T_mesh, X_mesh] = meshgrid(T, X_grid);
     figure;
@@ -124,7 +120,7 @@ function plot_hat_functions(X_grid)
     % Plotting some hat functions for visualization
     figure;
     hold on;
-    for k = 1:5:length(X_grid)
+    for k = 1:10:length(X_grid)
         phi_k = hat_function(X_grid, k);
         plot(X_grid, phi_k, 'LineWidth', 1.5);
     end
@@ -184,156 +180,3 @@ function F = LoadAssembler1D(x, f_func, t)
         F(i+1) = F(i+1) + f_mid * h / 2;
     end
 end
-
-%% STEP 7: Example Run (Test the solver)
-
-% Create figures directory if it doesn't exist
-if ~exist('figures', 'dir')
-    mkdir('figures');
-end
-
-% --- Manufactured Solution: 
-
-% Exact solution:
-u_exact = @(x,t) exp(-t) .* sin(pi * x);
-% Initial condition (t = 0)
-u0  = @(x) sin(pi * x); 
-% Source term f(x,t) derived from u_t - u_xx
-% u_t  = -exp(-t)*sin(pi*x)
-% u_xx = -pi^2 * exp(-t)*sin(pi*x)
-f_func       = @(x,t) (pi^2 - 1) * exp(-t) .* sin(pi * x);
-% Neumann Boundary Conditions (du/dx)
-% du/dx = pi * exp(-t) * cos(pi * x)
-g_left_func  = @(t) pi * exp(-t);  % at x=0, cos(0) = 1
-g_right_func = @(t) -pi * exp(-t); % at x=1, cos(pi) = -1
-
-
-X_grid = linspace(0, 1, 21);
-plot_hat_functions(X_grid);  % Plot hat functions for visualization
-
-[X, T, U_final, U_hist] = FiniteElementMethod(...
-    'Nx', 50, ... % Number of spatial nodes
-    'Nt', 100, ... % Number of time steps
-    'Tf', 1, ... % Final time
-    'u0', @(x) u0(x), ... % Initial condition
-    'a_func', @(x) 1, ... % Diffusion coefficient
-    'f_func', f_func, ... % f(x,t)
-    'g_left', g_left_func, ... % Left Neumann BC
-    'g_right', g_right_func, ...  % Right Neumann BC
-    'save_plots', true, ...
-    'plot_title', 'FEM Solution with $u_{exact} = \sin(\pi x)e^{-t}$');
-
-
-disp('Task 1 complete!!!!!!');
-
-
-
-%%-----Task 2-----
-%% Method of Manufactured Solutions
-
-disp('Task 2 complete!!!!!!');
-
-%%-----Task 3-----
-%% Spatial Convergence Study using Method of Manufactured Solutions
-
-
-
-% Fixed parameters
-tau = 5e-5;  % Fixed time step(changed from 5e-3to 5e-5 for better accuracy)
-Tf = 1;    % Final time
-Nt = ceil(Tf / tau) + 1;  % Number of time steps
-
-% Mesh sizes (h values)
-h_values = [1/2, 1/4, 1/8, 1/16, 1/32, 1/64];
-Nx_values = 1 ./ h_values + 1;  % Number of nodes corresponding to each h
-
-% Storage for errors and convergence rates
-E_h = zeros(size(h_values));
-convergence_rates = zeros(size(h_values));
-
-% Convergence study loop
-fprintf('\n========== TASK 3: Spatial Convergence Study ==========\n');
-fprintf('Fixed time step: tau = %.2e\n', tau);
-fprintf('Final time: Tf = %.2f\n\n', Tf);
-
-for k = 1:length(h_values)
-    h = h_values(k);
-    Nx = Nx_values(k);
-    
-    fprintf('Computing solution for h = 1/%d (Nx = %d)...\n', round(1/h), Nx);
-    
-    % Run FEM solver
-    [X_grid, T, U_final, U_hist] = FiniteElementMethod(...
-        'L', 1, ...
-        'Nx', Nx, ...
-        'Tf', Tf, ...
-        'Nt', Nt, ...
-        'u0', @(x) u_exact(x, 0), ...
-        'a_func', @(x) 1, ...
-        'f_func', f_func, ...
-        'g_left', g_left_func, ...
-        'g_right', g_right_func, ...
-        'save_plots', false);
-    
-    % Compute L2 error at each time step
-    max_error = 0;
-    for n = 1:length(T)
-        U_exact_n = u_exact(X_grid, T(n))';
-        U_approx_n = U_hist(:, n);
-        
-        % Compute L2 norm of error
-        dx = X_grid(2) - X_grid(1);
-        error_n = sqrt(dx * sum((U_approx_n - U_exact_n).^2));
-        
-        % Track maximum error
-        max_error = max(max_error, error_n);
-    end
-    
-    E_h(k) = max_error;
-    fprintf('  E_h = %.6e\n', E_h(k));
-end
-
-% Compute convergence rates
-fprintf('\n========== Convergence Rates ==========\n');
-fprintf('h\t\tE_h\t\t\tln(E_2h/E_h)/ln(2)\n');
-fprintf('%.4f\t\t%.6e\tN/A\n', h_values(1), E_h(1));
-
-for k = 2:length(h_values)
-    convergence_rates(k) = log(E_h(k-1) / E_h(k)) / log(2);
-    fprintf('%.4f\t\t%.6e\t%.6f\n', h_values(k), E_h(k), convergence_rates(k));
-end
-
-% Create Table 1: Convergence Table
-fprintf('\n========== Table 1: h-rate Convergence Table ==========\n');
-fprintf('h\t\tE_h = max|u(t_n) - u_h^n|_L2\tln(E_2h/E_h)/ln(2)\n');
-fprintf('%-10s\t%-30s\t%-20s\n', '1/2', sprintf('%.6e', E_h(1)), 'N/A');
-for k = 2:length(h_values)
-    fprintf('%-10s\t%-30s\t%-20.6f\n', sprintf('1/%d', round(1/h_values(k))), sprintf('%.6e', E_h(k)), convergence_rates(k));
-end
-
-% Create log-log plot
-figure;
-log_h = -log(h_values);
-log_E = -log(E_h);
-
-plot(log_h, log_E, 'bo-', 'LineWidth', 2, 'MarkerSize', 8);
-xlabel('-log(h)', 'FontSize', 12);
-ylabel('-log(E_h)', 'FontSize', 12);
-title('Spatial Convergence: Log-Log Plot', 'FontSize', 14);
-grid on;
-hold on;
-
-% Fit a line to estimate convergence order
-p = polyfit(log_h, log_E, 1);
-log_h_fit = linspace(min(log_h), max(log_h), 100);
-log_E_fit = polyval(p, log_h_fit);
-plot(log_h_fit, log_E_fit, 'r--', 'LineWidth', 1.5, 'DisplayName', sprintf('Linear fit (slope=%.2f)', p(1)));
-legend('Numerical results', 'Linear fit', 'FontSize', 11);
-
-hold off;
-saveas(gcf, 'convergence_loglog_plot.png');
-fprintf('\nLog-log plot saved to convergence_loglog_plot.png\n');
-close;
-
-disp('Task 3 complete!!!!!!');
-disp(sprintf('Estimated convergence order: %.2f', p(1)));
