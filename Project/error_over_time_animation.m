@@ -1,6 +1,6 @@
-%% Gradient Field Animation for Heat Flux
-% This script creates an animation showing the spatial gradient (heat flux)
-% du/dx over time, visualizing where heat is flowing most rapidly
+%% Error Over Time Animation
+% This script creates an animation showing the L2 error between FEM and exact solution
+% evolving over time, visualizing how well the numerical solution tracks the exact solution
 
 % Add parent directory to path to access Project.m
 addpath(pwd);
@@ -12,13 +12,10 @@ f_func = @(x,t) (pi^2 - 1) * exp(-t) .* sin(pi * x);
 g_left_func  = @(t) pi * exp(-t);
 g_right_func = @(t) -pi * exp(-t);
 
-% Exact gradient (du/dx)
-du_exact = @(x,t) pi * exp(-t) .* cos(pi * x);
-
 % --- Animation parameters ---
 Nx = 100;          % Fixed mesh size
-Tf = 5;            % Final time
-Nt = 50;           % Number of time steps
+Tf = 20;            % Final time
+Nt = 100;           % Number of time steps
 tau = Tf / (Nt - 1);
 
 % Time steps to capture for animation (evenly spaced)
@@ -27,7 +24,7 @@ time_frames = round(time_frames);
 time_frames = unique(time_frames);  % Remove duplicates
 
 % GIF output parameters
-gif_filename = 'gradient_field_animation.gif';
+gif_filename = 'error_over_time_animation.gif';
 delay_time = 0.5;  % Delay in seconds between frames
 
 % --- Run FEM solver once to get full solution ---
@@ -46,14 +43,23 @@ fprintf('Computing FEM solution for Nx = %d, Nt = %d...\n', Nx, Nt);
     'g_right', g_right_func, ...
     'save_plots', false);
 
-
-
 % --- Create figure for animation ---
 fig = figure('Position', [100, 100, 1000, 800]);
 
+% --- Pre-compute maximum error across all time steps for fixed z-axis ---
+fprintf('\n========== Computing maximum error for fixed axis scaling ==========\n');
+max_error_global = 0;
+for t_idx = 1:length(T)
+    U_exact_t = u_exact(X_grid, T(t_idx))';
+    U_approx_t = U_hist(:, t_idx);
+    error_t = abs(U_approx_t - U_exact_t);
+    max_error_global = max(max_error_global, max(error_t));
+end
+fprintf('Maximum error across all time steps: %.6e\n', max_error_global);
+
 % --- Create animation frames at selected time steps ---
-fprintf('\n========== Creating Gradient Field Animation ==========\n');
-fprintf('Creating %d frames showing heat flux evolution...\n\n', length(time_frames));
+fprintf('\n========== Creating Error Over Time Animation ==========\n');
+fprintf('Creating %d frames showing error evolution...\n\n', length(time_frames));
 
 for frame_idx = 1:length(time_frames)
     n = time_frames(frame_idx);
@@ -74,51 +80,43 @@ for frame_idx = 1:length(time_frames)
     T_current = T(1:n_plot);
     U_current = U_hist(:, 1:n_plot);
     
-    % Compute FEM gradient (spatial derivative) numerically
-    dU_current = zeros(size(U_current));
+    % Compute exact solution at all points and times
+    U_exact_current = zeros(length(X_grid), n_plot);
     for j = 1:n_plot
-        % Use central differences in space (except at boundaries)
-        dU_current(1, j) = (U_current(2, j) - U_current(1, j)) / (X_grid(2) - X_grid(1));
-        dU_current(end, j) = (U_current(end, j) - U_current(end-1, j)) / (X_grid(end) - X_grid(end-1));
-        for i = 2:(length(X_grid)-1)
-            dU_current(i, j) = (U_current(i+1, j) - U_current(i-1, j)) / (X_grid(i+1) - X_grid(i-1));
-        end
+        U_exact_current(:, j) = u_exact(X_grid, T(j))';
     end
+    
+    % Compute pointwise error
+    error_current = abs(U_current - U_exact_current);
     
     % Create meshgrid
     X_grid_col = X_grid(:);  % Column vector
     [T_mesh, X_mesh] = meshgrid(T_current, X_grid_col);
     
- 
+    % Plot error surface
+    surf(T_mesh, X_mesh, error_current, 'EdgeColor', 'none', 'FaceAlpha', 0.70);
+    colormap(gca, 'jet');
+    c = colorbar('Location', 'eastoutside');
+    ylabel(c, 'Absolute Error |u_{exact} - u_{FEM}|', 'FontSize', 10);
     
-    % Plot FEM gradient field
-    surf(T_mesh, X_mesh, dU_current, 'EdgeColor', 'none', 'FaceAlpha', 0.70);
-    colormap(gca, 'parula');
-    colorbar('Location', 'southoutside');
-    
-    % Hold on and plot exact gradient as translucent overlay
-
     xlabel('Time t', 'FontSize', 11);
     ylabel('Position x', 'FontSize', 11);
-    zlabel('du/dx (Heat Flux)', 'FontSize', 11);
-    title(sprintf('Heat Flux Field: $\\frac{\\partial u}{\\partial x} = \\pi e^{-t}\\cos(\\pi x)$ at t = %.4f (Nx = %d)', T(n), Nx), ...
+    zlabel('Error', 'FontSize', 11);
+    title(sprintf('Pointwise Error Evolution at t = %.4f (Nx = %d)', T(n), Nx), ...
         'FontSize', 12, 'Interpreter', 'latex');
-    view(45, 45);
-    zlim([-4, 4]);
+    view(45, 30);
+    zlim([0, max_error_global*1.1]);
     xlim([0, Tf]);
     ylim([0, 1]);
     
-    % Add Neumann boundary condition annotations
-    t_current = T(n);
-    bc_left = g_left_func(t_current);
-    bc_right = g_right_func(t_current);
+    % Compute and display global L2 error at current time
+    dx = X_grid(2) - X_grid(1);
+    l2_error_current = sqrt(dx * sum(error_current(:, end).^2));
     
-    % Add text labels for Neumann BCs at boundaries
-    text(t_current, 0, bc_left + 0.5, sprintf('BC left: du/dx = %.2f', bc_left), ...
-        'FontSize', 9, 'BackgroundColor', 'white', 'EdgeColor', 'black');
-    text(t_current, 1, bc_right + 0.5, sprintf('BC right: du/dx = %.2f', bc_right), ...
-        'FontSize', 9, 'BackgroundColor', 'white', 'EdgeColor', 'black');
-    
+    % Add text with L2 error information
+    text(0.02, 0.98, sprintf('L^2 Error at t = %.4f: %.6e', T(n), l2_error_current), ...
+        'Units', 'normalized', 'FontSize', 11, 'VerticalAlignment', 'top', ...
+        'BackgroundColor', 'white', 'EdgeColor', 'black', 'Margin', 5);
     
     % Capture frame and save to GIF
     drawnow;
@@ -142,7 +140,7 @@ fprintf('\nAnimation complete!\n');
 fprintf('GIF saved to: %s\n', gif_filename);
 
 % Save final frame as a high-resolution figure
-final_filename = 'gradient_field_final.png';
+final_filename = 'error_over_time_final.png';
 saveas(gcf, final_filename);
 fprintf('Final frame saved to: %s\n', final_filename);
 

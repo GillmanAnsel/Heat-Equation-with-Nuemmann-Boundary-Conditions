@@ -9,7 +9,7 @@ function [X_grid, T, U_final, U_history] = FiniteElementMethod(varargin)
     p = inputParser;
     addParameter(p, 'L', 1);           % Domain length
     addParameter(p, 'Nx', 20);         % Number of spatial nodes
-    addParameter(p, 'Tf', 1);          % Final time
+    addParameter(p, 'Tf', 5);          % Final time
     addParameter(p, 'Nt', 20);         % Number of time steps
     addParameter(p, 'a_func', @(x) 1); % Diffusion coefficient
     addParameter(p, 'f_func', @(x,t) 0); % Source term
@@ -214,7 +214,7 @@ plot_hat_functions(X_grid);  % Plot hat functions for visualization
 [X, T, U_final, U_hist] = FiniteElementMethod(...
     'Nx', 50, ... % Number of spatial nodes
     'Nt', 100, ... % Number of time steps
-    'Tf', 1, ... % Final time
+    'Tf', 5, ... % Final time
     'u0', @(x) u0(x), ... % Initial condition
     'a_func', @(x) 1, ... % Diffusion coefficient
     'f_func', f_func, ... % f(x,t)
@@ -240,7 +240,7 @@ disp('Task 2 complete!!!!!!');
 
 % Fixed parameters
 tau = 5e-5;  % Fixed time step(changed from 5e-3to 5e-5 for better accuracy)
-Tf = 1;    % Final time
+Tf = 5;    % Final time
 Nt = ceil(Tf / tau) + 1;  % Number of time steps
 
 % Mesh sizes (h values)

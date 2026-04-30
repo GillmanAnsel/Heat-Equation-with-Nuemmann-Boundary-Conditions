@@ -5,7 +5,7 @@ function [X_grid, T, U_final, U_history] = FiniteElementMethod(varargin)
     p = inputParser;
     addParameter(p, 'L', 1);           % Domain length
     addParameter(p, 'Nx', 20);         % Number of spatial nodes
-    addParameter(p, 'Tf', 1);          % Final time
+    addParameter(p, 'Tf', 5);          % Final time
     addParameter(p, 'Nt', 20);         % Number of time steps
     addParameter(p, 'a_func', @(x) 1); % Diffusion coefficient
     addParameter(p, 'f_func', @(x,t) 0); % Source term

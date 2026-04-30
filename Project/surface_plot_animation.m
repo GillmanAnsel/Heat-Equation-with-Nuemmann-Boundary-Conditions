@@ -16,7 +16,7 @@ g_right_func = @(t) -pi * exp(-t);
 h_values = [1/2, 1/4, 1/8, 1/16, 1/32, 1/64];
 Nx_values = 1 ./ h_values + 1;
 tau = 5e-5;  % Fixed time step
-Tf = 1;      % Final time
+Tf = 5;      % Final time
 Nt = ceil(Tf / tau) + 1;
 
 % GIF output parameters
@@ -25,6 +25,9 @@ delay_time = 1.5;  % Delay in seconds between frames
 
 % --- Create figure for animation ---
 fig = figure('Position', [100, 100, 1000, 800]);
+
+% --- Define time grid ---
+T = linspace(0, Tf, Nt);
 
 % --- Compute exact solution on a fine grid (constant across all frames) ---
 X_fine = linspace(0, 1, 300);  % Very fine spatial grid for smooth exact solution

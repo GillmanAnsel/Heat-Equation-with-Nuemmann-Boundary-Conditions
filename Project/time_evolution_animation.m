@@ -14,7 +14,7 @@ g_right_func = @(t) -pi * exp(-t);
 
 % --- Animation parameters ---
 Nx = 100;          % Fixed mesh size
-Tf = 1;            % Final time
+Tf = 5;            % Final time
 Nt = 50;           % Number of time steps (will create frames at selected time steps)
 tau = Tf / (Nt - 1);
 
@@ -43,12 +43,7 @@ fprintf('Computing FEM solution for Nx = %d, Nt = %d...\n', Nx, Nt);
     'g_right', g_right_func, ...
     'save_plots', false);
 
-% Compute exact solution on a fine grid for comparison
-X_fine = linspace(0, 1, 300);
-U_exact_fine_all = zeros(length(X_fine), length(T));
-for n = 1:length(T)
-    U_exact_fine_all(:, n) = u_exact(X_fine, T(n))';
-end
+
 
 % --- Create figure for animation ---
 fig = figure('Position', [100, 100, 1000, 800]);
@@ -80,27 +75,13 @@ for frame_idx = 1:length(time_frames)
     X_grid_col = X_grid(:);  % Column vector
     [T_mesh, X_mesh] = meshgrid(T_current, X_grid_col);
     
-    % Exact solution up to current time
-    U_exact_current = zeros(length(X_grid_col), n_plot);
-    for j = 1:n_plot
-        U_exact_current(:, j) = u_exact(X_grid_col, T(j))';
-    end
+  
     
     % Plot FEM solution
     surf(T_mesh, X_mesh, U_current, 'EdgeColor', 'none', 'FaceAlpha', 0.70);
     colormap(gca, 'hot');
     colorbar;
     
-    % Hold on and plot exact solution as translucent overlay
-    hold on;
-    X_fine_col = X_fine(:);  % Column vector
-    [T_mesh_fine, X_mesh_fine] = meshgrid(T_current, X_fine_col);
-    U_exact_fine_current = zeros(length(X_fine_col), n_plot);
-    for j = 1:n_plot
-        U_exact_fine_current(:, j) = u_exact(X_fine_col, T(j))';
-    end
-    surf(T_mesh_fine, X_mesh_fine, U_exact_fine_current, 'EdgeColor', 'none', 'FaceAlpha', 0.25);
-    hold off;
     
     xlabel('Time t', 'FontSize', 11);
     ylabel('Position x', 'FontSize', 11);
@@ -112,10 +93,6 @@ for frame_idx = 1:length(time_frames)
     xlim([0, Tf]);
     ylim([0, 1]);
     
-    % Create legend with visual transparency difference
-    p1 = patch(nan, nan, nan, 'FaceColor', [0 0 1], 'FaceAlpha', 0.70);
-    p2 = patch(nan, nan, nan, 'FaceColor', [0 0 1], 'FaceAlpha', 0.25);
-    legend([p1, p2], 'FEM Solution (opaque)', 'Exact Solution (translucent)', 'FontSize', 10);
     
     % Capture frame and save to GIF
     drawnow;
