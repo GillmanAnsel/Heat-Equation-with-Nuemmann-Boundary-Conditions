@@ -6,11 +6,11 @@
 addpath(pwd);
 
 % --- Manufactured Solution (same as in Project.m) ---
-u_exact = @(x,t) x + t;
-u0  = @(x) x; 
-f_func = @(x,t) 1;
-g_left_func  = @(t) 1;
-g_right_func = @(t) 1;
+u_exact = @(x,t) exp(-t) * sin(pi*x);
+u0  = @(x) sin(pi*x); 
+f_func = @(x,t) (pi^2 - 1) * exp(-t) * sin(pi*x);
+g_left_func  = @(t) pi;
+g_right_func = @(t) -pi;
 
 % --- Animation parameters ---
 h_values = [1/2, 1/4, 1/8, 1/16, 1/32, 1/64];
@@ -80,7 +80,7 @@ for k = 1:length(h_values)
     xlabel('Time t', 'FontSize', 11);
     ylabel('Position x', 'FontSize', 11);
     zlabel('u(x, t)', 'FontSize', 11);
-    title(sprintf('FEM Solution converging: $u_{exact} = x + t$, h = 1/%d (Nx = %d)', round(1/h), Nx), 'FontSize', 12, 'Interpreter', 'latex');
+    title(sprintf('FEM Solution converging: $u_{exact} = e^{-t}\\sin(\\pi x)$, h = 1/%d (Nx = %d)', round(1/h), Nx), 'FontSize', 12, 'Interpreter', 'latex');
     view(45, 30);
     zlim([0, 10]);
     
