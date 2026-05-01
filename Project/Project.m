@@ -195,17 +195,17 @@ end
 % --- Manufactured Solution: 
 
 % Exact solution:
-u_exact = @(x,t) exp(-t) .* sin(pi * x);
+u_exact = @(x,t) x + t;
 % Initial condition (t = 0)
-u0  = @(x) sin(pi * x); 
+u0  = @(x) x; 
 % Source term f(x,t) derived from u_t - u_xx
-% u_t  = -exp(-t)*sin(pi*x)
-% u_xx = -pi^2 * exp(-t)*sin(pi*x)
-f_func       = @(x,t) (pi^2 - 1) * exp(-t) .* sin(pi * x);
+% u_t  = 1
+% u_xx = 0
+f_func       = @(x,t) 1;
 % Neumann Boundary Conditions (du/dx)
-% du/dx = pi * exp(-t) * cos(pi * x)
-g_left_func  = @(t) pi * exp(-t);  % at x=0, cos(0) = 1
-g_right_func = @(t) -pi * exp(-t); % at x=1, cos(pi) = -1
+% du/dx = 1
+g_left_func  = @(t) 1;  % at x=0
+g_right_func = @(t) 1; % at x=1
 
 
 X_grid = linspace(0, 1, 21);
@@ -221,7 +221,7 @@ plot_hat_functions(X_grid);  % Plot hat functions for visualization
     'g_left', g_left_func, ... % Left Neumann BC
     'g_right', g_right_func, ...  % Right Neumann BC
     'save_plots', true, ...
-    'plot_title', 'FEM Solution with $u_{exact} = \sin(\pi x)e^{-t}$');
+    'plot_title', 'FEM Solution with $u_{exact} = x + t$');
 
 
 disp('Task 1 complete!!!!!!');
@@ -319,7 +319,7 @@ log_E = -log(E_h);
 plot(log_h, log_E, 'bo-', 'LineWidth', 2, 'MarkerSize', 8);
 xlabel('-log(h)', 'FontSize', 12);
 ylabel('-log(E_h)', 'FontSize', 12);
-title('Spatial Convergence: Log-Log Plot', 'FontSize', 14);
+title('Spatial Convergence for $u(x,t) = x + t$: Log-Log Plot', 'FontSize', 14, 'Interpreter', 'latex');
 grid on;
 hold on;
 

@@ -6,11 +6,11 @@
 addpath(pwd);
 
 % --- Manufactured Solution (same as in Project.m) ---
-u_exact = @(x,t) exp(-t) .* sin(pi * x);
-u0  = @(x) sin(pi * x); 
-f_func = @(x,t) (pi^2 - 1) * exp(-t) .* sin(pi * x);
-g_left_func  = @(t) pi * exp(-t);
-g_right_func = @(t) -pi * exp(-t);
+u_exact = @(x,t) x + t;
+u0  = @(x) x; 
+f_func = @(x,t) 1;
+g_left_func  = @(t) 1;
+g_right_func = @(t) 1;
 
 % --- Animation parameters ---
 Nx = 100;          % Fixed mesh size
@@ -86,10 +86,10 @@ for frame_idx = 1:length(time_frames)
     xlabel('Time t', 'FontSize', 11);
     ylabel('Position x', 'FontSize', 11);
     zlabel('u(x, t)', 'FontSize', 11);
-    title(sprintf('Time Evolution: $u_{exact} = e^{-t}\\sin(\\pi x)$ at t = %.4f (Nx = %d)', T(n), Nx), ...
+    title(sprintf('Time Evolution: $u(x,t) = x + t$ at t = %.4f (Nx = %d)', T(n), Nx), ...
         'FontSize', 12, 'Interpreter', 'latex');
     view(45, 30);
-    zlim([-1, 1]);
+    zlim([0, 10]);
     xlim([0, Tf]);
     ylim([0, 1]);
     

@@ -6,11 +6,11 @@
 addpath(pwd);
 
 % --- Manufactured Solution (same as in Project.m) ---
-u_exact = @(x,t) exp(-t) .* sin(pi * x);
-u0  = @(x) sin(pi * x); 
-f_func = @(x,t) (pi^2 - 1) * exp(-t) .* sin(pi * x);
-g_left_func  = @(t) pi * exp(-t);       % Left Neumann BC: du/dx at x=0
-g_right_func = @(t) -pi * exp(-t);      % Right Neumann BC: du/dx at x=L
+u_exact = @(x,t) x + t;
+u0  = @(x) x; 
+f_func = @(x,t) 1;
+g_left_func  = @(t) 1;       % Left Neumann BC: du/dx at x=0
+g_right_func = @(t) 1;      % Right Neumann BC: du/dx at x=L
 
 % --- Time parameters ---
 Tf = 8;            % Final time
@@ -25,15 +25,15 @@ flux_right = g_right_func(T);
 fig = figure('Position', [100, 100, 1000, 600]);
 
 % Plot boundary fluxes
-plot(T, flux_left, 'b-', 'LineWidth', 2.5, 'DisplayName', 'Left BC: $g_{left}(t) = \pi e^{-t}$ at $x=0$');
+plot(T, flux_left, 'b-', 'LineWidth', 2.5, 'DisplayName', 'Left BC: $g_{left}(t) = 1$ at $x=0$');
 hold on;
-plot(T, flux_right, 'r-', 'LineWidth', 2.5, 'DisplayName', 'Right BC: $g_{right}(t) = -\pi e^{-t}$ at $x=L$');
+plot(T, flux_right, 'r-', 'LineWidth', 2.5, 'DisplayName', 'Right BC: $g_{right}(t) = 1$ at $x=L$');
 plot(T, zeros(size(T)), 'k--', 'LineWidth', 1, 'DisplayName', 'Zero flux line');
 hold off;
 
 xlabel('Time t', 'FontSize', 12);
 ylabel('Heat Flux: $\frac{\partial u}{\partial x}$ (Neumann BC value)', 'FontSize', 12);
-title('Boundary Heat Flux Over Time', 'FontSize', 14, 'Interpreter', 'latex');
+title('Boundary Heat Flux Over Time for $u(x,t) = x + t$', 'FontSize', 14, 'Interpreter', 'latex');
 grid on;
 legend('FontSize', 11, 'Location', 'best', 'Interpreter', 'latex');
 xlim([0, Tf]);
@@ -68,7 +68,7 @@ hold off;
 
 xlabel('Time t', 'FontSize', 12);
 ylabel('Absolute Heat Flux Magnitude', 'FontSize', 12);
-title('Boundary Heat Flux Magnitude Over Time', 'FontSize', 14, 'Interpreter', 'latex');
+title('Boundary Heat Flux Magnitude for $u(x,t) = x + t$ Over Time', 'FontSize', 14, 'Interpreter', 'latex');
 grid on;
 legend('FontSize', 11, 'Location', 'best', 'Interpreter', 'latex');
 xlim([0, Tf]);
